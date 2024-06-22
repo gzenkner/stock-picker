@@ -7,4 +7,6 @@ A scraper is used to retrieve key attributes (information), for example, a metho
         yfScraper -> retrives specific information a ticker price or ticker summary
         StockAnalyzer -> a series of functions to analyse the timeseries data
 
-To begin, initialise a yfScraper class
+To begin, identify stocks of interest, either by adding them directly to ticker_attributes.json file in the specified format, or running S&P500 scraper. Then, initialise a yfScraper class, which will load the ticker information to its attributes. You can then run various methods, such as get ticker summary information by passing in a list of tickers, or historical stock prices, again by passing in a list of tickers.
+
+Once the data is gathered, you can start your analysis with the pre-built analytical tools in /analysis to analyse the market (S&P500), US senate trading records or individual stocks.
