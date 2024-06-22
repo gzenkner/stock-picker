@@ -12,7 +12,7 @@ To begin, identify stocks of interest, either by adding them directly to ticker_
 Once the data is gathered, you can start your analysis with the pre-built analytical tools in /analysis to analyse the market (S&P500), US senate trading records or individual stocks.
 
 
-![S&P500 Sectors Heatmap](stock_analysis\images\Screenshot 2024-06-22 111302.png)
-![S&P500 P/E Ratio Sectors](stock_analysis\images\Screenshot 2024-06-22 111349.png)
-![S&P500 P/E Ratio, Beta and Market Cap in IT / Telecoms](stock_analysis\images\Screenshot 2024-06-22 111417.png)
+![S&P500 Sectors Heatmap](https://github.com/gzenkner/stock-picker/blob/main/images/Screenshot%202024-06-22%20111302.png)
+![S&P500 P/E Ratio Sectors](https://github.com/gzenkner/stock-picker/blob/main/images/Screenshot%202024-06-22%20111349.png)
+![S&P500 P/E Ratio, Beta and Market Cap in IT / Telecoms](https://github.com/gzenkner/stock-picker/blob/main/images/Screenshot%202024-06-22%20111417.png)
 
