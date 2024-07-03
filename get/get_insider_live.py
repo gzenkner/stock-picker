@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 from datetime import datetime
 import os
+import re
 
 
 options = webdriver.ChromeOptions()
@@ -87,31 +88,89 @@ def clean_text(text):
 def format_date(date_str):
     return datetime.strptime(date_str.strip(), '%b %d, %Y').strftime('%Y-%m-%d') if isinstance(date_str, str) else date_str
 
-def make_df(data, path, start_page, end_page):
-    scrape_date = datetime.now().date()
-    df = pd.json_normalize(data)
+def post_process_insider(raw_file_path, processed_file_path):
+    df = pd.read_csv(raw_file_path)
+    
+    tickers = []
+    companies = []
+    representatives = []
+    parties = []
+    transaction_types = []
+    transaction_amounts_min = []
+    transaction_amounts_max = []
+    excess_returns = []
+    traded_dates = []
+    filed_dates = []
+    
+    def parse_transaction_amount(transaction_amount):
+        amounts = re.sub(r'[^\d\-]', '', transaction_amount).split('-')
+        amount_min = int(amounts[0])
+        amount_max = int(amounts[1]) if len(amounts) > 1 else amount_min
+        return amount_min, amount_max
 
-    df['Stock'] = df['Stock'].apply(clean_text)
-    df['Politician'] = df['Politician'].apply(clean_text)
-    df['Transaction'] = df['Transaction'].apply(clean_text)
-    df['Excess return *'] = df['Excess return *'].apply(clean_text)
-    df['Traded'] = df['Traded'].apply(format_date)
-    df['Filed'] = df['Filed'].apply(format_date)
+    def parse_excess_return(excess_return):
+        if excess_return.strip() == '-' or not excess_return.strip():
+            return None
+        return float(excess_return.strip('%'))
 
-    df['Transaction'] = df['Transaction'].str.replace('[\$,]', '', regex=True)
-    df['Excess return *'] = df['Excess return *'].apply(lambda x: x.replace('%', '').strip() if isinstance(x, str) else x)
+    for index, row in df.iterrows():
+        stock_details = row['Stock'].split('\n')
+        ticker = stock_details[0]  # Extract the ticker
+        company = stock_details[1] if len(stock_details) > 1 else ""  # Extract the company name
+        
+        politician_details = row['Politician'].split('\n')
+        representative = politician_details[0]  # Extract the representative's name
+        party = politician_details[1] if len(politician_details) > 1 else ""  # Extract the party
+        
+        transaction_details = row['Transaction'].split('\n')
+        transaction_type = transaction_details[0]
+        transaction_amount = transaction_details[1]
+        
+        amount_min, amount_max = parse_transaction_amount(transaction_amount)
+    
+        excess_return = parse_excess_return(row['Excess return *'])
+        
+        traded_date = pd.to_datetime(row['Traded']).strftime('%Y-%m-%d')
+        filed_date = pd.to_datetime(row['Filed']).strftime('%Y-%m-%d')
+        
+        tickers.append(ticker)
+        companies.append(company)
+        representatives.append(representative)
+        parties.append(party)
+        transaction_types.append(transaction_type)
+        transaction_amounts_min.append(amount_min)
+        transaction_amounts_max.append(amount_max)
+        excess_returns.append(excess_return)
+        traded_dates.append(traded_date)
+        filed_dates.append(filed_date)
+    
+    parsed_df = pd.DataFrame({
+        'ticker': tickers,
+        'company': companies,
+        'representative': representatives,
+        'party': parties,
+        'transaction_type': transaction_types,
+        'transaction_amount_min': transaction_amounts_min,
+        'transaction_amount_max': transaction_amounts_max,
+        'excess_return_perc': excess_returns,
+        'traded': traded_dates,
+        'filed': filed_dates
+    })
 
-    df = df.rename(columns={'Stock': 'stock', 'Politician': 'politician', 'Transaction': 'transaction', 'Excess return *': 'excess_return', 'Traded': 'traded', 'Filed': 'filed'})
+    parsed_df['transaction_amount_min'] = pd.to_numeric(parsed_df['transaction_amount_min'])
+    parsed_df['transaction_amount_max'] = pd.to_numeric(parsed_df['transaction_amount_max'])
+    parsed_df['excess_return_perc'] = pd.to_numeric(parsed_df['excess_return_perc'])
 
-    file_name = f'insider_trades_{scrape_date}_pages_{start_page}-{end_page}.csv'
-    file_path = os.path.join(path, file_name)
-    df.to_csv(file_path, index=False)
+    parsed_df['traded'] = pd.to_datetime(parsed_df['traded'])
+    parsed_df['filed'] = pd.to_datetime(parsed_df['filed'])
+
+    parsed_df.to_csv(processed_file_path, index=False)
+    print(f'Saved processed file to: {processed_file_path}')
 
 
 start_page = 1
 end_page = get_max_page_number(driver)
-# end_page = 800
-path = r'C:\Users\gabri\my_projects\stock_analysis\data'
+
 
 all_data = []
 for page in range(start_page, end_page):
@@ -119,13 +178,23 @@ for page in range(start_page, end_page):
         navigate_to_page(driver, page)
         data = scrape_page(driver)
         all_data.extend(data)
-        print(f"Data from page {page}:")
-        for entry in data:
-            print(entry)
+
     except Exception as e:
         print(f"An error occurred on page {page}: {e}")
 
+
+scrape_date = datetime.now().date()
+data_dir = r'C:\Users\gabri\my_projects\stock_analysis\data'
+raw_file_name = f'insider_trades_{scrape_date}_pages_{start_page}-{end_page}_raw.csv'
+raw_file_path = os.path.join(data_dir, raw_file_name)
+
+df = pd.json_normalize(all_data)
+df.to_csv(raw_file_path, index=False)
+print(f'Saved raw file to: {raw_file_path}')
+
 driver.quit()
 
+processed_file_name = f'insider_trades_{scrape_date}_pages_{start_page}-{end_page}.csv'
+processed_file_path = os.path.join(data_dir, processed_file_name)
+post_process_insider(raw_file_path, processed_file_path)
 
-make_df(all_data, path, start_page, end_page)
