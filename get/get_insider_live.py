@@ -194,7 +194,10 @@ print(f'Saved raw file to: {raw_file_path}')
 
 driver.quit()
 
+
 processed_file_name = f'insider_trades_{scrape_date}_pages_{start_page}-{end_page}.csv'
 processed_file_path = os.path.join(data_dir, processed_file_name)
-post_process_insider(raw_file_path, processed_file_path)
-
+try:
+    post_process_insider(raw_file_path, processed_file_path)
+except Exception as e:
+    print(f'Error, failed to process all entries: {e}')
