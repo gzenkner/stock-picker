@@ -111,7 +111,8 @@ def post_process_insider(raw_file_path, processed_file_path):
     def parse_excess_return(excess_return):
         if excess_return.strip() == '-' or not excess_return.strip():
             return None
-        return float(excess_return.strip('%'))
+        excess_return_cleaned = excess_return.replace(',', '')  # Remove commas
+        return float(excess_return_cleaned.strip('%'))
 
     for index, row in df.iterrows():
         stock_details = row['Stock'].split('\n')
